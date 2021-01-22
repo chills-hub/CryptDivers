@@ -58,7 +58,11 @@ namespace vnc
         protected float wishSpeed;
 
         protected bool wasGrounded = false;   // if player was on ground on previous update
-        public bool WasGrounded { get { return wasGrounded; } }
+        public bool WasGrounded
+        {
+            get { return wasGrounded; }
+            set { wasGrounded = value; }
+        }
 
         // Jumping
         public int TriedJumping { get; protected set; }    // jumping timer i.e. bunnyhopping
@@ -79,7 +83,6 @@ namespace vnc
         public CC_State State { get; protected set; }
         public bool IsGrounded { get { return (State & CC_State.IsGrounded) != 0; } }
         public bool OnPlatform { get { return (State & CC_State.OnPlatform) != 0; } }
-        public bool OnLadder { get { return (State & CC_State.OnLadder) != 0; } }
         public bool IsDucking { get { return (State & CC_State.Ducking) != 0; } }
         public bool WalkedOnStep { get { return HasCollision(CC_Collision.CollisionStep); } }
         public bool NoClipping
@@ -94,20 +97,9 @@ namespace vnc
         public SurfaceNormals surfaceNormals = new SurfaceNormals();
         public Vector3 gravityDirection = Vector3.up;
         #endregion
-
-        // Water
-        [HideInInspector] public CC_Water WaterState { get; private set; }
-        public bool IsSwimming { get; private set; }
-        private float waterSurfacePosY;
-        private float WaterThreshold { get { return transform.position.y + Profile.SwimmingOffset; } }
-
         // Platforms
         public Collider CurrentPlatform { get; protected set; }
         protected bool wasOnPlatform;
-
-        // Ladders
-        protected bool foundLadder = false;   // when one of the collisions found is a ladder
-        protected bool detachLadder = false;  // detach from previous ladder
 
         // Helps camera smoothing on step.
         public ushort StepCount { get; set; }    // how much the controller went up
@@ -118,6 +110,8 @@ namespace vnc
         [HideInInspector] public bool autoFillMovements;
         [HideInInspector] public RetroMovement[] retroMovements;
         [HideInInspector] public RetroMovement currentMovement; // movement executed in the last fixed update
+
+        [HideInInspector] public bool legacyLadderMovement, legacyWaterMovement = true;
 
         // CALLBACK EVENTS
         [HideInInspector, Obsolete("")] public UnityEvent OnLandingCallback;
@@ -134,7 +128,9 @@ namespace vnc
         protected virtual void Awake()
         {
             State = CC_State.None;
+#pragma warning disable 612, 618
             WaterState = CC_Water.None;
+#pragma warning restore 612, 618
             Collisions = CC_Collision.None;
             JumpGraceTimer = Profile.JumpGraceTime;
             TriedJumping = 0;
@@ -153,10 +149,13 @@ namespace vnc
                 retroMovements = GetComponentsInChildren<RetroMovement>();
 
             for (int i = 0; i < retroMovements.Length; i++)
+            {
                 retroMovements[i].OnAwake(this);
+            }
 
             FixedPosition = transform.position;
         }
+
         /// <summary>
         /// Main update method
         /// </summary>
@@ -192,12 +191,13 @@ namespace vnc
                 }
                 else
                 {
-                    if (OnLadder && !detachLadder)
+#pragma warning disable 612, 618
+                    if (legacyLadderMovement && OnLadder && !detachLadder)
                     {
                         LadderMovementUpdate();
                         RemoveState(CC_State.Ducking);
                     }
-                    else if (IsSwimming && WaterState == CC_Water.Underwater)
+                    else if (legacyWaterMovement && IsSwimming && WaterState == CC_Water.Underwater)
                     {
                         WaterMovementUpdate();
                         OnDuckState();
@@ -207,6 +207,7 @@ namespace vnc
                         GroundMovementUpdate();
                         OnDuckState();
                     }
+#pragma warning restore 612, 618
                 }
 
                 currentMovement = null;
@@ -339,7 +340,6 @@ namespace vnc
             }
             else
             {
-                // TODO: no wishDir normalization?
                 MoveAir();
             }
 
@@ -388,25 +388,6 @@ namespace vnc
 
             wasOnPlatform = OnPlatform;
         }
-        /// <summary>
-        /// Update loop for when the controller is underwater
-        /// </summary>
-        protected virtual void WaterMovementUpdate()
-        {
-            // player moved the character
-            var walk = inputDir.y * controllerView.forward;
-            var strafe = inputDir.x * transform.TransformDirection(Vector3.right);
-            wishDir = (walk + strafe) + (gravityDirection * Swim);
-            wishDir.Normalize();
-
-            TriedJumping = 0;   // ignores jumping on water
-
-            Velocity = MoveWater(wishDir, Velocity);
-            AddGravity(Profile.WaterGravityScale);
-
-            CharacterMove(Velocity);
-        }
-
         protected virtual void FlyMovementUpdate()
         {
             RemoveState(CC_State.IsGrounded);
@@ -422,65 +403,6 @@ namespace vnc
 
             CharacterMove(Velocity);
         }
-
-        /// <summary>
-        /// Update loop for when the controller is attached
-        /// to a ladder
-        /// </summary>
-        protected virtual void LadderMovementUpdate()
-        {
-            if (HasCollision(CC_Collision.CollisionBelow))
-                AddState(CC_State.IsGrounded);
-            else
-                RemoveState(CC_State.IsGrounded);
-
-            wishDir = AlignOnLadder();
-            Velocity = MoveLadder(wishDir, Velocity);
-
-            if (TriedJumping > 0)
-            {
-                // detach and jump away from ladder
-                Velocity = surfaceNormals.ladder * Profile.LadderDetachJumpSpeed;
-                TriedJumping = 0;
-                detachLadder = true;
-            }
-
-            CharacterMove(Velocity);
-
-            wasGrounded = IsGrounded;
-        }
-
-        /// <summary>
-        /// Align the input direction alongside the ladder plane
-        /// </summary>
-        /// <param name="direction">The input direction</param>
-        /// <returns>Vector aligned with the ladder</returns>
-        protected virtual Vector3 AlignOnLadder()
-        {
-            var forward = inputDir.y * controllerView.forward;
-            var strafe = inputDir.x * transform.TransformDirection(Vector3.right);
-
-            // Calculate player wish direction
-            Vector3 dir = forward + strafe;
-
-            var perp = Vector3.Cross(gravityDirection, surfaceNormals.ladder);
-            perp.Normalize();
-            // Perpendicular in the ladder plane
-            var climbDirection = Vector3.Cross(surfaceNormals.ladder, perp);
-
-            var dNormal = Vector3.Dot(dir, surfaceNormals.ladder);
-            var cross = surfaceNormals.ladder * dNormal;
-            var lateral = dir - cross;
-
-            var newDir = lateral + -dNormal * climbDirection;
-            if (IsGrounded && dNormal > 0)
-            {
-                newDir = surfaceNormals.ladder;
-            }
-
-            return newDir;
-        }
-
         [Obsolete("Use 'AddGravity' instead.")]
         protected virtual void CalculateGravity(float gravityMultiplier = 1f)
         {
@@ -523,9 +445,9 @@ namespace vnc
             if (!wasGrounded && IsGrounded)
             {
                 // notify when player reaches the ground
-#pragma warning disable CS0618 
+#pragma warning disable 612, 618
                 OnLandingCallback.Invoke(); // Callback is deprecated
-#pragma warning restore CS0618 
+#pragma warning restore 612, 618 
                 OnLanding.Invoke(lastGround);
             }
         }
@@ -552,13 +474,6 @@ namespace vnc
             prevVelocity = Accelerate(this.wishDir, prevVelocity, Profile.DuckingAcceleration, Profile.MaxDuckingSpeed);
             return prevVelocity;
         }
-
-        protected virtual Vector3 MoveLadder(Vector3 wishdir, Vector3 prevVelocity)
-        {
-            prevVelocity = wishdir * Profile.LadderSpeed;
-            return prevVelocity;
-        }
-
         /// <summary>
         /// Movement on the air.
         /// </summary>
@@ -566,28 +481,19 @@ namespace vnc
         {
             AccelerateAir(wishDir, wishSpeed, Profile.AirAcceleration, Profile.MaxAirSpeed);
         }
-
-        // move with water friction
-        protected virtual Vector3 MoveWater(Vector3 accelDir, Vector3 prevVelocity)
-        {
-            prevVelocity = WaterFriction(prevVelocity);
-            return Accelerate(accelDir, prevVelocity, Profile.WaterAcceleration, Profile.MaxWaterSpeed);
-        }
-
         /// <summary>
         /// Default movement for flying controllers. To not confuse with "MoveAir".
         /// </summary>
         protected virtual Vector3 MoveFly(Vector3 accelDir, Vector3 prevVelocity)
         {
             prevVelocity = Friction(prevVelocity, Profile.FlyFriction);
-            //prevVelocity = AccelerateAir(accelDir, Profile.AirAcceleration, Profile.MaxAirSpeed);
             return prevVelocity;
         }
         #endregion Acceleration
 
         #region Acceleration
         // TODO: why it uses this formula instead of the same of the Air strafing?
-        protected virtual Vector3 Accelerate(Vector3 wishdir, Vector3 prevVelocity, float accelerate, float max_velocity)
+        public virtual Vector3 Accelerate(Vector3 wishdir, Vector3 prevVelocity, float accelerate, float max_velocity)
         {
             var projVel = Vector3.Dot(prevVelocity, wishdir);
             float accelSpeed = accelerate;
@@ -669,21 +575,6 @@ namespace vnc
             }
             return wishspeed;
         }
-
-        protected virtual Vector3 WaterFriction(Vector3 prevVelocity)
-        {
-            var wishspeed = prevVelocity;
-
-            float speed = wishspeed.magnitude;
-
-            if (speed != 0) // To avoid divide by zero errors
-            {
-                float drop = speed * Profile.WaterFriction * Time.fixedDeltaTime;
-                wishspeed *= Mathf.Max(speed - drop, 0) / speed; // Scale the Velocity based on friction.
-            }
-            return wishspeed;
-        }
-
         /// <summary>
         /// Apply friction when player hits the ground
         /// </summary>
@@ -708,6 +599,7 @@ namespace vnc
         /// <param name="movement">Final movement</param>
         public virtual void CharacterMove(Vector3 movement, bool runCustomMovements = true)
         {
+#pragma warning disable 612, 618
             LimitVerticalSpeed();
             SetDuckHull();
 
@@ -717,6 +609,7 @@ namespace vnc
             Collisions = CC_Collision.None;
             State &= ~CC_State.OnPlatform;
             IsSwimming = false;
+#pragma warning restore 612, 618
 
             Vector3 direction = movement.normalized;
             float distance = FloatFixer(movement.magnitude);
@@ -746,10 +639,10 @@ namespace vnc
 
             if (runCustomMovements)
             {
-                // execute the necessary checks for custom movements
-                for (int i = 0; i < retroMovements.Length; i++)
-                    if (retroMovements[i].IsActive)
-                        retroMovements[i].OnCharacterMove();
+                //execute the necessary checks for custom movements
+                for (int m = 0; m < retroMovements.Length; m++)
+                    if (retroMovements[m].IsActive)
+                        retroMovements[m].OnCharacterMove();
             }
 
             //DetectLedge();
@@ -772,8 +665,9 @@ namespace vnc
 
             float dist, dot;
             dist = dot = 0f;
-
+#pragma warning disable 612, 618
             foundLadder = false;
+#pragma warning restore 612, 618
 
             LayerMask overlapMask = Profile.SurfaceLayers & ~ignoredLayers;
             int nColls = fixedOverlapBoxNonAlloc(movement, overlapingColliders, overlapMask, QueryTriggerInteraction.Collide);
@@ -788,7 +682,7 @@ namespace vnc
 
                 if (c.isTrigger)
                 {
-                    if (c.tag == Profile.WaterTag)
+                    if (c.CompareTag(Profile.WaterTag))
                     {
                         CheckWater(c);
                     }
@@ -826,28 +720,29 @@ namespace vnc
                         if (dot >= 0 && dot < SlopeDot)
                         {
                             Collisions |= CC_Collision.CollisionSides;
+                            surfaceNormals.sides = penetrationNormal;
 
-                            if (c.tag == Profile.LadderTag)
-                            {
+                            for (int m = 0; m < retroMovements.Length; m++)
+                                if (retroMovements[m].IsActive)
+                                    retroMovements[m].OnCollisionSide(c);
+
+#pragma warning disable 612, 618
+                            // LEGACY
+                            if (legacyLadderMovement && c.tag == Profile.LadderTag)
                                 foundLadder = true;
-
-                                // pick the first normal on contact
-                                if (!OnLadder)
-                                    surfaceNormals.ladder = penetrationNormal;
-
-                            }
+#pragma warning restore 612, 618
                             else
                             {
+                                // check for steps
                                 bool foundStep = false;
                                 position = MoveOnSteps(position, direction, out foundStep);
                                 if (!foundStep)
                                 {
+                                    // run normal collision solving against a wall
                                     position += penetrationNormal * dist;
-                                    surfaceNormals.wall = penetrationNormal;
                                     OnCCHit(penetrationNormal);
                                     WaterEdgePush(penetrationNormal);
                                 }
-
                             }
                         }
 
@@ -863,12 +758,17 @@ namespace vnc
 
             }
 
-            if (foundLadder) State |= CC_State.OnLadder;
-            else
+#pragma warning disable 612, 618
+            if (legacyLadderMovement)
             {
-                State &= ~CC_State.OnLadder;
-                detachLadder = false;
+                if (foundLadder) State |= CC_State.OnLadder;
+                else
+                {
+                    State &= ~CC_State.OnLadder;
+                    detachLadder = false;
+                }
             }
+#pragma warning restore 612, 618
 
             return position;
         }
@@ -879,6 +779,7 @@ namespace vnc
         /// </summary>
         protected virtual void CheckWater(Collider waterCollider)
         {
+#pragma warning disable 612, 618
             IsSwimming = true;
 
             // cast a ray from the sky and detect the topmost point
@@ -888,6 +789,7 @@ namespace vnc
             {
                 waterSurfacePosY = hit.point.y;
             }
+#pragma warning restore 612, 618
         }
 
         /// <summary>
@@ -895,6 +797,7 @@ namespace vnc
         /// </summary>
         protected virtual void SetWaterLevel()
         {
+#pragma warning disable 612, 618
             if (IsSwimming)
             {
                 if (WaterThreshold > waterSurfacePosY)
@@ -906,6 +809,7 @@ namespace vnc
             {
                 WaterState = CC_Water.None;
             }
+#pragma warning restore 612, 618
         }
 
         protected virtual void WaterEdgePush(Vector3 normal)
@@ -913,6 +817,7 @@ namespace vnc
             Vector3 horizontalVel = wishDir;
             horizontalVel.y = 0;
 
+#pragma warning disable 612, 618
             // Check if the player is in the border of the water, give it a little push
             if (HasCollision(CC_Collision.CollisionSides)
                 && Swim > 0
@@ -924,6 +829,7 @@ namespace vnc
                     Velocity.y = Profile.WaterEdgeJumpSpeed;
                 }
             }
+#pragma warning restore 612, 618
         }
         #endregion
 
@@ -1048,6 +954,8 @@ namespace vnc
             return n == 0;
         }
 
+        static RaycastHit[] results = new RaycastHit[4];
+
         /// <summary>
         /// Test overlapping with a ground and set the collision state
         /// </summary>
@@ -1056,7 +964,6 @@ namespace vnc
             RemoveState(CC_State.IsGrounded);
             Vector3 center, halfExtents;
             Quaternion orientation;
-            RaycastHit[] results = new RaycastHit[4];
             _boxCollider.ToWorldSpaceBox(out center, out halfExtents, out orientation);
             center = FixedPosition + _boxCollider.center;
             halfExtents = halfExtents - Vector3.one * 0.01f;
@@ -1107,7 +1014,7 @@ namespace vnc
         /// <param name="c">Collider to be checked</param>
         public virtual void CheckPlatform(Collider c)
         {
-            if (c.tag == Profile.PlatformTag)
+            if (c.CompareTag(Profile.PlatformTag))
             {
                 // on a platform
                 // send the platform message that the player collided
@@ -1115,6 +1022,8 @@ namespace vnc
                 CurrentPlatform = c;
             }
         }
+
+        static Vector3[] origins = new Vector3[4];
 
         /// <summary>
         /// Detect collision casting down from the sides of a box
@@ -1127,13 +1036,10 @@ namespace vnc
 
             Vector3 halfSize = _boxCollider.size / 2f;
 
-            Vector3[] origins = new[]
-            {
-                FixedPosition + (transform.forward * halfSize.z) + (transform.right * halfSize.x),
-                FixedPosition + (transform.forward * halfSize.z) + (-transform.right * halfSize.x),
-                FixedPosition + (-transform.forward * halfSize.z) + (transform.right * halfSize.x),
-                FixedPosition + (-transform.forward * halfSize.z) + (-transform.right * halfSize.x)
-            };
+            origins[0] = FixedPosition + (transform.forward * halfSize.z) + (transform.right * halfSize.x);
+            origins[1] = FixedPosition + (transform.forward * halfSize.z) + (-transform.right * halfSize.x);
+            origins[2] = FixedPosition + (-transform.forward * halfSize.z) + (transform.right * halfSize.x);
+            origins[3] = FixedPosition + (-transform.forward * halfSize.z) + (-transform.right * halfSize.x);
 
             for (int i = 0; i < origins.Length; i++)
             {
@@ -1337,6 +1243,138 @@ namespace vnc
 
         #endregion
 
+        #region Legacy
+
+        #region Ladder
+        [Obsolete] public bool OnLadder { get { return (State & CC_State.OnLadder) != 0; } }
+        [Obsolete] protected bool foundLadder, detachLadder = false;
+
+        /// <summary>
+        /// Align the input direction alongside the ladder plane
+        /// </summary>
+        /// <param name="direction">The input direction</param>
+        /// <returns>Vector aligned with the ladder</returns>
+        [Obsolete("This will be replaced with Retro Ladder Custom Movement in the next versions.")]
+        public virtual Vector3 AlignOnLadder()
+        {
+            var forward = inputDir.y * controllerView.forward;
+            var strafe = inputDir.x * transform.TransformDirection(Vector3.right);
+
+            // Calculate player wish direction
+            Vector3 dir = forward + strafe;
+
+            var perp = Vector3.Cross(gravityDirection, surfaceNormals.sides);
+            perp.Normalize();
+            // Perpendicular in the ladder plane
+            var climbDirection = Vector3.Cross(surfaceNormals.sides, perp);
+
+            var dNormal = Vector3.Dot(dir, surfaceNormals.sides);
+            var cross = surfaceNormals.sides * dNormal;
+            var lateral = dir - cross;
+
+            var newDir = lateral + -dNormal * climbDirection;
+            if (IsGrounded && dNormal > 0)
+            {
+                newDir = surfaceNormals.sides;
+            }
+
+            return newDir;
+        }
+
+        /// <summary>
+        /// Update loop for when the controller is attached
+        /// to a ladder
+        /// </summary>
+#pragma warning disable 612, 618
+        [Obsolete("This will be replaced with Retro Ladder Custom Movement in the next versions.")]
+        protected virtual void LadderMovementUpdate()
+        {
+            if (HasCollision(CC_Collision.CollisionBelow))
+                AddState(CC_State.IsGrounded);
+            else
+                RemoveState(CC_State.IsGrounded);
+
+            wishDir = AlignOnLadder();
+            Velocity = MoveLadder(wishDir, Velocity);
+
+            if (TriedJumping > 0)
+            {
+                // detach and jump away from ladder
+                Velocity = surfaceNormals.sides * Profile.LadderDetachJumpSpeed;
+                TriedJumping = 0;
+                detachLadder = true;
+            }
+
+            CharacterMove(Velocity);
+
+            wasGrounded = IsGrounded;
+        }
+
+        protected virtual Vector3 MoveLadder(Vector3 wishdir, Vector3 prevVelocity)
+        {
+            prevVelocity = wishdir * Profile.LadderSpeed;
+            return prevVelocity;
+        }
+#pragma warning restore 612, 618
+
+        // These methods are only used to support previous versions 
+        // of the controller and will be removed in the future
+
+        #endregion
+
+        #region Water
+        [Obsolete] private float WaterThreshold { get { return transform.position.y + Profile.SwimmingOffset; } }
+        [Obsolete] private float waterSurfacePosY;
+        [Obsolete] public bool IsSwimming { get; private set; }
+        // Water
+        [HideInInspector, Obsolete] public CC_Water WaterState { get; private set; }
+
+        /// <summary>
+        /// Update loop for when the controller is underwater
+        /// </summary>
+        [Obsolete("This will be replaced with RetroWaver Custom Movement in the near future.")]
+        protected virtual void WaterMovementUpdate()
+        {
+            // player moved the character
+            var walk = inputDir.y * controllerView.forward;
+            var strafe = inputDir.x * transform.TransformDirection(Vector3.right);
+            wishDir = (walk + strafe) + (gravityDirection * Swim);
+            wishDir.Normalize();
+
+            TriedJumping = 0;   // ignores jumping on water
+
+            Velocity = MoveWater(wishDir, Velocity);
+            AddGravity(Profile.WaterGravityScale);
+
+            CharacterMove(Velocity);
+        }
+
+        // move with water friction
+        protected virtual Vector3 MoveWater(Vector3 accelDir, Vector3 prevVelocity)
+        {
+            prevVelocity = WaterFriction(prevVelocity);
+            return Accelerate(accelDir, prevVelocity, Profile.WaterAcceleration, Profile.MaxWaterSpeed);
+        }
+
+        protected virtual Vector3 WaterFriction(Vector3 prevVelocity)
+        {
+            var wishspeed = prevVelocity;
+
+            float speed = wishspeed.magnitude;
+
+            if (speed != 0) // To avoid divide by zero errors
+            {
+                float drop = speed * Profile.WaterFriction * Time.fixedDeltaTime;
+                wishspeed *= Mathf.Max(speed - drop, 0) / speed; // Scale the Velocity based on friction.
+            }
+            return wishspeed;
+        }
+
+
+        #endregion
+
+        #endregion
+
         private void OnDrawGizmosSelected()
         {
             if (Profile)
@@ -1393,11 +1431,12 @@ namespace vnc
         }
         #endregion
     }
+
+    public class RetroColliderEvent : UnityEvent<Collider> { }
 }
 
 public struct SurfaceNormals
 {
     public Vector3 floor;
-    public Vector3 ladder;
-    public Vector3 wall;
+    public Vector3 sides;
 }

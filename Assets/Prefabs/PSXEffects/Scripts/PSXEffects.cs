@@ -1,20 +1,16 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
-using UnityEngine.Rendering;
-using UnityEngine.UI;
 using UnityEngine.Networking;
 
 [RequireComponent(typeof(Camera))]
 [ExecuteInEditMode]
 public class PSXEffects : MonoBehaviour {
 
-	public System.Version version = new System.Version("1.15.5");
+	public System.Version version = new System.Version("1.18");
 	public string cfuStatus = "PSXEffects";
 	public bool[] sections = { true, true, true, false };
 
+	#region Properties
 	public Vector2Int customRes = new Vector2Int(620, 480);
 	public int resolutionFactor = 1;
 	public int limitFramerate = -1;
@@ -29,7 +25,7 @@ public class PSXEffects : MonoBehaviour {
 	public Texture2D ditherTexture;
 	public bool dithering = true;
 	public float ditherThreshold = 1;
-	public int ditherIntensity = 2;
+	public int ditherIntensity = 12;
 	public int maxDarkness = 20;
 	public int subtractFade = 0;
 	public float favorRed = 1.0f;
@@ -44,10 +40,12 @@ public class PSXEffects : MonoBehaviour {
 	public int shadowType = 0;
 	public bool ditherSky = false;
 	public int ditherType = 1;
+	#endregion
 
 	private Material postProcessingMat;
 	private RenderTexture rt;
 	private Vector2 prevCustomRes;
+	private int[] propIds;
 
 	private void Awake() {
 		if (Application.isPlaying) {
@@ -66,7 +64,28 @@ public class PSXEffects : MonoBehaviour {
 		rt = new RenderTexture(customRes.x, customRes.y, 16, RenderTextureFormat.ARGB32);
 		rt.filterMode = FilterMode.Point;
 
+		string[] props = new string[] {
+			"_AffineMapping",
+			"_DrawDistance",
+			"_VertexSnappingDetail",
+			"_Offset",
+			"_DarkMax",
+			"_SubtractFade",
+			"_WorldSpace",
+			"_CamPos",
+			"_ShadowType"
+		};
+		propIds = new int[props.Length];
+		for (int i = 0; i < props.Length; i++) {
+			propIds[i] = Shader.PropertyToID(props[i]);
+		}
+
+		UpdateProperties();
 		CheckForUpdates();
+	}
+
+	private void Start() {
+		UpdateProperties();
 	}
 
 	private void Update() {
@@ -79,37 +98,8 @@ public class PSXEffects : MonoBehaviour {
 			rt.filterMode = FilterMode.Point;
 		}
 
-		// Set mesh shader variables
-		Shader.SetGlobalFloat("_AffineMapping", affineMapping ? 1.0f : 0.0f);
-		Shader.SetGlobalFloat("_DrawDistance", polygonalDrawDistance);
-		Shader.SetGlobalInt("_VertexSnappingDetail", vertexInaccuracy / 2);
-		Shader.SetGlobalInt("_Offset", polygonInaccuracy);
-		Shader.SetGlobalFloat("_DarkMax", (float)maxDarkness / 100);
-		Shader.SetGlobalFloat("_SubtractFade", (float)subtractFade / 100);
-		Shader.SetGlobalFloat("_WorldSpace", worldSpaceSnapping ? 1.0f : 0.0f);
-		Shader.SetGlobalFloat("_CamPos", camSnapping ? 1.0f : 0.0f);
-		Shader.SetGlobalFloat("_ShadowType", shadowType);
-
-
-		if (postProcessing) {
-			// Handles all post processing variables
-			if (postProcessingMat == null) {
-				postProcessingMat = new Material(Shader.Find("Hidden/PS1PostProcessing"));
-			} else {
-				postProcessingMat.SetFloat("_ColorDepth", colorDepth);
-				postProcessingMat.SetFloat("_Scanlines", scanlines ? 1 : 0);
-				postProcessingMat.SetFloat("_ScanlineIntensity", (float)scanlineIntensity / 100);
-				postProcessingMat.SetTexture("_DitherTex", ditherTexture);
-				postProcessingMat.SetFloat("_Dithering", dithering ? 1 : 0);
-				postProcessingMat.SetFloat("_DitherThreshold", ditherThreshold);
-				postProcessingMat.SetFloat("_DitherIntensity", (float)ditherIntensity / 100);
-				postProcessingMat.SetFloat("_ResX", customRes.x);
-				postProcessingMat.SetFloat("_ResY", customRes.y);
-				postProcessingMat.SetFloat("_FavorRed", favorRed);
-				postProcessingMat.SetFloat("_SLDirection", verticalScanlines ? 1 : 0);
-				postProcessingMat.SetFloat("_DitherSky", ditherSky ? 1 : 0);
-				postProcessingMat.SetFloat("_DitherType", ditherType);
-			}
+		if (Application.isEditor && !Application.isPlaying) {
+			UpdateProperties();
 		}
 
 		Application.targetFrameRate = limitFramerate;
@@ -135,6 +125,74 @@ public class PSXEffects : MonoBehaviour {
 			transform.position = snapPos;
 		} else if(transform.parent != null && transform.parent.name.Contains("CameraRealPosition")) {
 			Destroy(transform.parent.gameObject);
+		}
+	}
+
+	// Updates shader properties with the properties set in PSXEffects
+	public void UpdateProperties() {
+		// Set mesh shader variables
+		if (affineMapping)
+			Shader.EnableKeyword("AFFINE_MAPPING");
+		else
+			Shader.DisableKeyword("AFFINE_MAPPING");
+		Shader.SetGlobalFloat(propIds[1], polygonalDrawDistance);
+		Shader.SetGlobalInt(propIds[2], (int)(vertexInaccuracy * 0.5f));
+		Shader.SetGlobalInt(propIds[3], polygonInaccuracy);
+		Shader.SetGlobalFloat(propIds[4], maxDarkness * 0.01f);
+		Shader.SetGlobalFloat(propIds[5], subtractFade * 0.01f);
+		if (worldSpaceSnapping)
+			Shader.EnableKeyword("WORLD_SPACE_SNAPPING");
+		else
+			Shader.DisableKeyword("WORLD_SPACE_SNAPPING");
+		Shader.SetGlobalFloat(propIds[7], camSnapping ? 1.0f : 0.0f);
+		if (shadowType == 0) {
+			Shader.EnableKeyword("SHADOW_DEFAULT");
+			Shader.DisableKeyword("SHADOW_PSX");
+		} else {
+			Shader.DisableKeyword("SHADOW_DEFAULT");
+			Shader.EnableKeyword("SHADOW_PSX");
+		}
+
+		if (postProcessing) {
+			// Handles all post processing variables
+			if (postProcessingMat == null) {
+				postProcessingMat = new Material(Shader.Find("Hidden/PS1PostProcessing"));
+			} else {
+				postProcessingMat.SetFloat("_ColorDepth", Mathf.Pow(2, colorDepth));
+				postProcessingMat.SetFloat("_Scanlines", scanlines ? 1 : 0);
+				postProcessingMat.SetFloat("_ScanlineIntensity", scanlineIntensity * 0.01f);
+				postProcessingMat.SetTexture("_DitherTex", ditherTexture);
+				postProcessingMat.SetFloat("_Dithering", dithering ? 1 : 0);
+				postProcessingMat.SetFloat("_DitherThreshold", ditherThreshold);
+				postProcessingMat.SetFloat("_DitherIntensity", ditherIntensity * 0.01f);
+				postProcessingMat.SetFloat("_ResX", customRes.x);
+				postProcessingMat.SetFloat("_ResY", customRes.y);
+				postProcessingMat.SetFloat("_FavorRed", favorRed);
+				postProcessingMat.SetFloat("_SLDirection", verticalScanlines ? 1 : 0);
+				if (ditherSky) {
+					postProcessingMat.EnableKeyword("DITHER_SKY");
+				} else {
+					postProcessingMat.DisableKeyword("DITHER_SKY");
+				}
+				if (ditherType == 0) {
+					postProcessingMat.EnableKeyword("DITHER_SLOW");
+					postProcessingMat.DisableKeyword("DITHER_FAST");
+					postProcessingMat.DisableKeyword("DITHER_TEX");
+				} else if (ditherType == 1) {
+					postProcessingMat.EnableKeyword("DITHER_FAST");
+					postProcessingMat.DisableKeyword("DITHER_SLOW");
+					postProcessingMat.DisableKeyword("DITHER_TEX");
+				} else if (ditherType == 2) {
+					postProcessingMat.EnableKeyword("DITHER_TEX");
+					postProcessingMat.DisableKeyword("DITHER_SLOW");
+					postProcessingMat.DisableKeyword("DITHER_FAST");
+				}
+				if (scanlines) {
+					postProcessingMat.EnableKeyword("SCANLINES_ON");
+				} else {
+					postProcessingMat.DisableKeyword("SCANLINES_ON");
+				}
+			}
 		}
 	}
 
@@ -185,21 +243,28 @@ public class PSXEffects : MonoBehaviour {
 
 	IEnumerator CheckForUpdate() {
 		cfuStatus = "Checking for updates...";
-		UnityWebRequest www = UnityWebRequest.Get("https://tripleaxis.net/test/psfxversion/");
+		UnityWebRequest www = UnityWebRequest.Get("https://ckosmic.github.io/psfxredir.html");
 		yield return www.SendWebRequest();
 
 		if (www.isNetworkError || www.isHttpError) {
 			Debug.Log(www.error);
 		} else {
-			System.Version onlineVer = new System.Version(www.downloadHandler.text);
-			int comparison = onlineVer.CompareTo(version);
+			www = UnityWebRequest.Get(www.downloadHandler.text);
+			yield return www.SendWebRequest();
 
-			if (comparison < 0) {
-				cfuStatus = "PSXEffects v" + version.ToString() + " - version ahead?!";
-			} else if (comparison == 0) {
-				cfuStatus = "PSXEffects v" + version.ToString() + " - up to date.";
+			if (www.isNetworkError || www.isHttpError) {
+				Debug.Log(www.error);
 			} else {
-				cfuStatus = "PSXEffects v" + version.ToString() + " - update available (click to update).";
+				System.Version onlineVer = new System.Version(www.downloadHandler.text);
+				int comparison = onlineVer.CompareTo(version);
+
+				if (comparison < 0) {
+					cfuStatus = "PSXEffects v" + version.ToString() + " - version ahead?!";
+				} else if (comparison == 0) {
+					cfuStatus = "PSXEffects v" + version.ToString() + " - up to date.";
+				} else {
+					cfuStatus = "PSXEffects v" + version.ToString() + " - update available (click to update).";
+				}
 			}
 		}
 	}

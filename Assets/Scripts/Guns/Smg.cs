@@ -3,6 +3,7 @@
 public class Smg : Weapon
 {
     public Animator SmgAnimator;
+    public AudioSource FireSound;
 
     public Smg() 
     {
@@ -40,7 +41,7 @@ public class Smg : Weapon
         {
             if (Time.time >= NextTimeToFire)
             {
-                //PlayGunSound();
+                PlayGunSound();
                 SetNextFireTime();
                 DrainAmmo();
                 SetAnimatorValues(true);
@@ -61,14 +62,6 @@ public class Smg : Weapon
 
     void PlayGunSound() 
     {
-        RefManager.AudioManager.PlaySound(GetComponent<AudioSource>());
+       RefManager.AudioManager.PlayAutoGunSound(FireSound);
     }
-
-    void StopGunSound()
-    {
-        RefManager.AudioManager.StopSound(GetComponent<AudioSource>());
-    }
-
-
-
 }

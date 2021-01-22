@@ -15,22 +15,24 @@ public class PickupManager : MonoBehaviour
 
     public void ApplyPickup(string pickup) 
     {
-        if (pickup == "Handgun")
-        {
-            PlayerInventory.InventorySlots[0].GetComponent<Weapon>().InInventory = true;
-        }
-
-        if (pickup == "SMG_Pickup") 
+        if (pickup == "Handgun_Pickup")
         {
             PlayerInventory.InventorySlots[1].GetComponent<Weapon>().InInventory = true;
             PlayerInventory.selectedWeapon = 1;
             PlayerInventory.SelectWeapon();
         }
 
-        if (pickup == "Shotgun_Pickup")
+        if (pickup == "SMG_Pickup") 
         {
             PlayerInventory.InventorySlots[2].GetComponent<Weapon>().InInventory = true;
             PlayerInventory.selectedWeapon = 2;
+            PlayerInventory.SelectWeapon();
+        }
+
+        if (pickup == "Shotgun_Pickup")
+        {
+            PlayerInventory.InventorySlots[3].GetComponent<Weapon>().InInventory = true;
+            PlayerInventory.selectedWeapon = 3;
             PlayerInventory.SelectWeapon();
         }
     }

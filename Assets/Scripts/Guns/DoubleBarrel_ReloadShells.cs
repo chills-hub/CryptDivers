@@ -27,11 +27,19 @@ public class DoubleBarrel_ReloadShells : MonoBehaviour
     {
         MuzzleFlashLeft.Play();
         MuzzleFlashRight.Play();
+        StartCoroutine(StopMuzzle());
     }
 
     public float GenerateRandomSpins() 
     {
         var spin = Random.Range(0, 360);
         return spin;
+    }
+
+    IEnumerator StopMuzzle()
+    {
+        yield return new WaitForSeconds(0.1f);
+        MuzzleFlashLeft.Clear();
+        MuzzleFlashRight.Clear();
     }
 }

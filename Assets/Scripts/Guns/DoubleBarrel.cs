@@ -3,6 +3,7 @@
 public class DoubleBarrel : Weapon
 {
     public Animator DoubleBarrelAnimator;
+    public AudioSource FireSound;
 
     public DoubleBarrel()
     {
@@ -13,7 +14,7 @@ public class DoubleBarrel : Weapon
         Falloff = 30f;
         FireRate = 0.8f;
         AmmoType = AmmoType.Shotgun;
-        NextTimeToFire = 0.5f;
+        NextTimeToFire = 0.2f;
         Spread = 0.1f;
     }
 
@@ -40,12 +41,12 @@ public class DoubleBarrel : Weapon
         {
             if (Time.time >= NextTimeToFire)
             {
-                //PlayGunSound();
                 SetNextFireTime();
                 DrainAmmo();
                 SetAnimatorValues(true);
                 FireHitscanWeapon(PlayerGunCamera.transform.position, 6 , Spread);
                 DoubleBarrelAnimator.SetBool("DoubleBarrel_HasFired", true);
+                RefManager.AudioManager.PlaySemiAutoGunSound(FireSound);
             }
         }
         else
@@ -56,23 +57,8 @@ public class DoubleBarrel : Weapon
 
     }
 
-    void SetMuzzles(ParticleSystem muzzle, bool state)
-    {
-        muzzle.gameObject.SetActive(state);
-    }
-
     void SetAnimatorValues(bool input)
     {
         DoubleBarrelAnimator.SetBool("DoubleBarrel_Fire", input);
-    }
-
-    void PlayGunSound()
-    {
-        RefManager.AudioManager.PlaySound(GetComponent<AudioSource>());
-    }
-
-    void StopGunSound()
-    {
-        RefManager.AudioManager.StopSound(GetComponent<AudioSource>());
     }
 }

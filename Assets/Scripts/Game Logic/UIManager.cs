@@ -22,9 +22,9 @@ public class UIManager : MonoBehaviour
 
     void UpdateAmmoCounter() 
     {
-        if (Player.CurrentEquippedWeapon == "Handgun")
+        if (Player.CurrentEquippedWeapon == "FireAxe")
         {
-            AmmoCounter.text = "INF";
+            AmmoCounter.text = "";
         }
         else 
         {

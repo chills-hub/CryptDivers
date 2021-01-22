@@ -10,9 +10,9 @@ public class Pickup : MonoBehaviour
     /// </summary>
     public enum PickupType 
     {
-        Handgun = 0,
-        SMG = 1,
-        Shotgun = 2
+        Handgun = 1,
+        SMG = 2,
+        Shotgun = 3
     }
 
     // Start is called before the first frame update

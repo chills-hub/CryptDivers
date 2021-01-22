@@ -232,18 +232,20 @@ namespace vnc
 
         #region Serialization
         [System.NonSerialized]
-        private readonly System.Version LATEST_VERSION = new System.Version(2, 4, 0);
+        private readonly System.Version LATEST_VERSION = new System.Version(2, 5, 0);
 
         [HideInInspector, SerializeField]
         private System.Version version = new System.Version(0, 0, 0);
 
         private void OnEnable()
         {
+#pragma warning disable 612, 618
             if (version < new System.Version(2, 3))
             {
                 MaxSpeedScale.y = MaxVerticalSpeedScale;
                 version = LATEST_VERSION;
             }
+#pragma warning restore 612, 618
         }
         #endregion
     }

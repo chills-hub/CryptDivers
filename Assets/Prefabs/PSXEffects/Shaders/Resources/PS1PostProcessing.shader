@@ -15,6 +15,9 @@ Shader "Hidden/PS1PostProcessing"
 			CGPROGRAM
 			#pragma vertex vert
 			#pragma fragment frag
+			#pragma shader_feature _ DITHER_SKY
+			#pragma shader_feature _ DITHER_FAST DITHER_SLOW DITHER_TEX
+			#pragma shader_feature _ SCANLINES_ON
 			
 			#include "UnityCG.cginc"
 
@@ -131,14 +134,13 @@ Shader "Hidden/PS1PostProcessing"
 				return o;
 			}
 
-			fixed4 frag (v2f i) : SV_Target
+			fixed4 frag(v2f i) : SV_Target
 			{
 				float aspect = _ResY / _ResX;
 				fixed4 col = tex2D(_MainTex, i.uv);
 				#if !UNITY_COLORSPACE_GAMMA
 				col.rgb = LinearToGammaSpace(col.rgb);
 				#endif
-				int colors = pow(2, _ColorDepth);
 				
 				#ifdef UNITY_COLORSPACE_GAMMA
 					half luma = LinearRgbToLuminance(GammaToLinearSpace(saturate(col.rgb)));
@@ -157,37 +159,39 @@ Shader "Hidden/PS1PostProcessing"
 				#endif
 
 				// Scanlines
-				float sl = floor(i.uv.x * _ResX % 2) * _SLDirection + floor(i.uv.y * _ResY % 2) * (1 - _SLDirection);
-				col.rgb += _Scanlines * sl * _ScanlineIntensity;
-				col.rgb = saturate(col.rgb);
+				#if defined(SCANLINES_ON)
+					float sl = floor(i.uv.x * _ResX % 2) * _SLDirection + floor(i.uv.y * _ResY % 2) * (1 - _SLDirection);
+					col.rgb += sl * _ScanlineIntensity;
+					col.rgb = saturate(col.rgb);
+				#endif
 
 				// Calculate depth texture
 				float depth = 1;
-				if(_DitherSky == 0)
+				#if !defined(DITHER_SKY)
 					depth = 1 - floor(Linear01Depth(tex2D(_CameraDepthTexture, i.uv).r));
+				#endif
 
 				// Calculate dithering values based on _DitherTex
 				float4 ditherTex = tex2D(_DitherTex, float2(i.uv.x, i.uv.y * aspect) * _DitherTex_TexelSize.x * _ResX);
-				if (ditherTex.r == 1 && ditherTex.g == 1 && ditherTex.b == 1 && ditherTex.a == 1 && _DitherType < 2) {
+				#if defined(DITHER_TEX)
+					half dither = (ditherTex.a - 0.5) * 2 / _DitherThreshold;
+					col.rgb *= 1.0f + (luma < dither ? (1 - luma) * (1 - (_ColorDepth / 24)) * _DitherIntensity * 10 : 0) * depth * _Dithering;
+				#else
+					//if (ditherTex.r == 1 && ditherTex.g == 1 && ditherTex.b == 1 && ditherTex.a == 1 && _DitherType < 2) {
 					// Metal can't handle cool accurate dithering unfortunately
 					#ifdef SHADER_API_METAL
 						col.rgb += GetDitherOld(float2(i.uv.x, i.uv.y * aspect) * _ResX, 1) * _DitherIntensity * depth * _Dithering;
 					#else
-						if(_DitherType == 0)
+						#if defined(DITHER_SLOW)
 							col.rgb = GetDither(float2(i.uv.x, i.uv.y * aspect) * _ResX, col.rgb, _DitherIntensity * depth * _Dithering / 3.0);
-						else if(_DitherType == 1)
+						#elif defined(DITHER_FAST)
 							col.rgb += GetDitherOld(float2(i.uv.x, i.uv.y * aspect) * _ResX, 1) * _DitherIntensity * depth * _Dithering;
+						#endif
 					#endif
-				} else {
-					half dither = 0;
-					dither = ditherTex.a;
-					dither = (dither - 0.5) * 2 / _DitherThreshold;
-					col.rgb *= 1.0f + (luma < dither ? (1 - luma) * (1 - (_ColorDepth / 24)) * _DitherIntensity * 10 : 0) * depth * _Dithering;
-				}
+				#endif
 
-				col.rgb = floor(col.rgb * colors) / colors;
-
-				col.rgb = saturate(col.rgb);
+				// Posterize
+				col.rgb = saturate(floor(col.rgb * _ColorDepth) / _ColorDepth);
 
 				#if !UNITY_COLORSPACE_GAMMA
 					col.rgb = GammaToLinearSpace(col.rgb);

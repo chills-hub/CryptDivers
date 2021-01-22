@@ -71,7 +71,7 @@ public class SCWindow : EditorWindow
 			texture = selectedTexture;
 			prevSelectedTexture = selectedTexture;
 			string path = AssetDatabase.GetAssetPath(selectedTexture);
-			string ext = Path.GetExtension(path);
+			string ext = ".png";
 			string dir = Path.GetDirectoryName(path);
 			string name = Path.GetFileNameWithoutExtension(path);
 			info.name = name + "_crunched" + ext;

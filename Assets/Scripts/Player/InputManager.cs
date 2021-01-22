@@ -19,12 +19,12 @@ public class InputManager : MonoBehaviour
     public InputAction InventoryNum4;
     public InputAction InventoryNum5;
     public InputAction InventoryNum6;
-
     public InputAction Scroll;
     #endregion
 
     public GameEvent ScrollWeaponUp;
     public GameEvent ScrollWeaponDown;
+    //This needs separated into separate calls
     public GameEvent InventoryKeyPressed;
 
     private RetroController retroController; //The retro controller to accept input
@@ -40,10 +40,13 @@ public class InputManager : MonoBehaviour
     public bool toggleDucking;
     private bool isSprinting;
     private bool isCrouching;
+
     [HideInInspector]
     public bool isFiring;
     [HideInInspector]
     public bool isGrounded;
+    [HideInInspector]
+    public bool isMoving;
 
     private void OnEnable()
     {
@@ -142,6 +145,7 @@ public class InputManager : MonoBehaviour
         bool jumpInput = Jumping.triggered;
         bool crouchInput = Crouch.triggered;
 
+
         Vector2 wasdVectors = Movement.ReadValue<Vector2>();
         Vector3 finalVectors = new Vector3();
         finalVectors.x = wasdVectors.x;
@@ -151,6 +155,15 @@ public class InputManager : MonoBehaviour
         strafe = finalVectors.x;
         swim = swimInputs;
         jump = jumpInput;
+
+        if (fwd > 0 || strafe > 0 || fwd < 0 || strafe < 0) 
+        {
+            isMoving = true;
+        }
+        else
+        {
+            isMoving = false;
+        }
 
         if (isSprinting)
         {

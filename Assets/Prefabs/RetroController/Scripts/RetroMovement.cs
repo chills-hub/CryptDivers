@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace vnc
 {
@@ -16,10 +17,12 @@ namespace vnc
         }
 
         protected RetroController retroController;
+        protected RetroControllerProfile RetroProfile { get; private set; }
 
         public virtual void OnAwake(RetroController retroController)
         {
             this.retroController = retroController;
+            RetroProfile = retroController.Profile;
         }
 
         /// <summary>
@@ -37,6 +40,11 @@ namespace vnc
         /// </returns>
         public abstract bool DoMovement();
 
+        /// <summary>
+        /// Executes in CharacterMove function after collisions are solved.
+        /// </summary>
         public abstract void OnCharacterMove();
+
+        public virtual void OnCollisionSide(Collider collider) { }
     }
 }

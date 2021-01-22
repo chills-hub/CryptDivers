@@ -4,19 +4,29 @@ using UnityEngine;
 
 public class AudioManager : MonoBehaviour
 {
-    public void PlaySound(AudioSource source) 
+    public void PlaySemiAutoGunSound(AudioSource source) 
+    {
+        source.Play();
+    }
+
+    public void PlayAutoGunSound(AudioSource source)
     {
         StartCoroutine(PlayAudio(source));
     }
 
-    public void StopSound(AudioSource source)
+    public void PlayFootstepSound(AudioSource source)
     {
-        source.Stop();
+        source.PlayOneShot(source.clip, 0.7f);
+    }
+
+    public void PlayJumpSound(AudioSource source)
+    {
+        source.Play();
     }
 
     IEnumerator PlayAudio(AudioSource soundEffect)
     {
-        soundEffect.PlayOneShot(soundEffect.clip, 1);
-        yield break;
+        soundEffect.PlayOneShot(soundEffect.clip, 0.7f);
+        yield return new WaitForSeconds(1f);
     }
 }

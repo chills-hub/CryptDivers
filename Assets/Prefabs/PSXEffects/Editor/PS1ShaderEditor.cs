@@ -60,6 +60,7 @@ public class PS1ShaderEditor : ShaderGUI
 		public static string settingsText = "Settings";
 		public static string vertInnText = "Override Vertex Inaccuracy";
 		public static string uvMapText = "Override UV Mapping";
+		public static string cutoutThresholdText = "Alpha Cutoff";
 		public static readonly string[] blendNames = Enum.GetNames(typeof(RenderModes));
 		public static readonly string[] diffuseNames = Enum.GetNames(typeof(DiffuseModels));
 		public static readonly string[] specularNames = Enum.GetNames(typeof(SpecularModels));
@@ -83,11 +84,12 @@ public class PS1ShaderEditor : ShaderGUI
 	MaterialProperty _MetalMap = null;
 	MaterialProperty _Metallic = null;
 	MaterialProperty _Smoothness = null;
+	MaterialProperty _EmissionMap = null;
 	MaterialProperty _Emission = null;
-	MaterialProperty _EmissionAmt = null;
 	MaterialProperty _Cube = null;
 	MaterialProperty _LODTex = null;
 	MaterialProperty _LODAmt = null;
+	MaterialProperty _CutoutThreshold = null;
 
 	public void FindProperties(MaterialProperty[] props) {
 		_MainTex = FindProperty("_MainTex", props);
@@ -106,11 +108,12 @@ public class PS1ShaderEditor : ShaderGUI
 		_MetalMap = FindProperty("_MetalMap", props);
 		_Metallic = FindProperty("_Metallic", props);
 		_Smoothness = FindProperty("_Smoothness", props);
+		_EmissionMap = FindProperty("_EmissionMap", props);
 		_Emission = FindProperty("_Emission", props);
-		_EmissionAmt = FindProperty("_EmissionAmt", props);
 		_Cube = FindProperty("_Cube", props);
 		_LODTex = FindProperty("_LODTex", props);
 		_LODAmt = FindProperty("_LODAmt", props);
+		_CutoutThreshold = FindProperty("_CutoutThreshold", props);
 	}
 
 	public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] properties) {
@@ -123,18 +126,15 @@ public class PS1ShaderEditor : ShaderGUI
 		EditorGUI.BeginChangeCheck();
 		EditorGUILayout.LabelField(Styles.settingsText, EditorStyles.boldLabel);
 		_RenderMode.floatValue = EditorGUILayout.Popup(Styles.renderModeText, (int)_RenderMode.floatValue, Styles.blendNames);
-		_BlendOp.floatValue = EditorGUILayout.Popup(Styles.blendOpText, (int)_BlendOp.floatValue, Styles.blendOpNames);
-		if (_RenderMode.floatValue != 1) {
-			depthWrite = EditorGUILayout.Toggle("Ignore Depth Buffer", depthWrite);
+		if (_RenderMode.floatValue == 2) {
+			_CutoutThreshold.floatValue = EditorGUILayout.Slider(Styles.cutoutThresholdText, _CutoutThreshold.floatValue, 0.0f, 1.0f);
 		}
+		_BlendOp.floatValue = EditorGUILayout.Popup(Styles.blendOpText, (int)_BlendOp.floatValue, Styles.blendOpNames);
+		depthWrite = EditorGUILayout.Toggle("Ignore Depth Buffer", depthWrite);
 		culling = EditorGUILayout.Toggle("Backface Culling", culling);
 		_Unlit.floatValue = EditorGUILayout.Toggle(Styles.unlitText, _Unlit.floatValue > 0.0f) ? 1.0f : 0.0f;
 		_DrawDist.floatValue = EditorGUILayout.Toggle(Styles.drawDistText, _DrawDist.floatValue > 0.0f) ? 1.0f : 0.0f;
-		EditorGUIUtility.labelWidth = Screen.width - 85;
-		EditorGUIUtility.fieldWidth = 1;
 		_VertexInaccuracy.floatValue = EditorGUILayout.FloatField(Styles.vertInnText, _VertexInaccuracy.floatValue);
-		EditorGUIUtility.labelWidth = 0;
-		EditorGUIUtility.fieldWidth = 0;
 		EditorGUILayout.Separator();
 
 		EditorGUILayout.LabelField(Styles.texturesText, EditorStyles.boldLabel);
@@ -144,14 +144,16 @@ public class PS1ShaderEditor : ShaderGUI
 		materialEditor.TexturePropertySingleLine(Styles.normalMapText, _NormalMap, _NormalMapDepth);
 		materialEditor.TexturePropertySingleLine(Styles.specularMapText, _SpecularMap, _Specular);
 		_SpecModel.floatValue = EditorGUILayout.Popup(Styles.specularModeText, (int)_SpecModel.floatValue, Styles.specularNames);
-		materialEditor.TexturePropertySingleLine(Styles.metalMapText, _MetalMap, _Metallic);
 		if (_MetalMap.textureValue == null) {
-			EditorGUILayout.BeginHorizontal();
-			EditorGUILayout.PrefixLabel("Smoothness");
-			_Smoothness.floatValue = EditorGUILayout.Slider(_Smoothness.floatValue, 0.0f, 1.0f);
-			EditorGUILayout.EndHorizontal();
+			materialEditor.TexturePropertySingleLine(Styles.metalMapText, _MetalMap, _Metallic);
+		} else {
+			materialEditor.TexturePropertySingleLine(Styles.metalMapText, _MetalMap);
 		}
-		materialEditor.TexturePropertySingleLine(Styles.emissionMapText, _Emission, _EmissionAmt);
+		EditorGUILayout.BeginHorizontal();
+		EditorGUILayout.PrefixLabel("Smoothness");
+		_Smoothness.floatValue = EditorGUILayout.Slider(_Smoothness.floatValue, 0.0f, 1.0f);
+		EditorGUILayout.EndHorizontal();
+		materialEditor.TexturePropertySingleLine(Styles.emissionMapText, _EmissionMap, _Emission);
 		materialEditor.TexturePropertySingleLine(Styles.cubeMapText, _Cube);
 		materialEditor.TexturePropertySingleLine(Styles.lodTexText, _LODTex, _LODAmt);
 
@@ -174,8 +176,9 @@ public class PS1ShaderEditor : ShaderGUI
 				material.EnableKeyword("_ALPHABLEND_ON");
 				material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
 				material.EnableKeyword("TRANSPARENT");
+				material.DisableKeyword("OPAQUE");
+				material.DisableKeyword("CUTOUT");
 				material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
-				material.SetInt("_ZWrite", 0);
 			} else {
 				material.SetOverrideTag("RenderType", "Opaque");
 				material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
@@ -184,15 +187,30 @@ public class PS1ShaderEditor : ShaderGUI
 				material.DisableKeyword("_ALPHABLEND_ON");
 				material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
 				material.DisableKeyword("TRANSPARENT");
-				material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Geometry;
-				if (depthWrite) {
-					material.SetInt("_ZWrite", 0);
-					material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Geometry + 1;
-				} else {
-					material.SetInt("_ZWrite", 1);
-					material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Geometry;
+				if (_RenderMode.floatValue == 0) {
+					material.EnableKeyword("OPAQUE");
+					material.DisableKeyword("CUTOUT");
+				} else if (_RenderMode.floatValue == 2) {
+					material.EnableKeyword("CUTOUT");
+					material.DisableKeyword("OPAQUE");
 				}
+				material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Geometry;
+
 			}
+			if (depthWrite) {
+				material.SetInt("_ZWrite", 0);
+				if (_RenderMode.floatValue != 1)
+					material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Geometry + 1;
+				material.EnableKeyword("DEPTH_WRITE");
+			} else {
+				material.SetInt("_ZWrite", 1);
+				if (_RenderMode.floatValue != 1)
+					material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Geometry;
+				material.DisableKeyword("DEPTH_WRITE");
+			}
+			material.SetShaderPassEnabled("ForwardAdd", _Unlit.floatValue == 0);
+			material.SetShaderPassEnabled("Meta", true);
+			material.EnableKeyword("_EMISSION");
 			if (culling) {
 				material.SetInt("_Cul", (int)UnityEngine.Rendering.CullMode.Back);
 				material.EnableKeyword("BFC");
@@ -200,13 +218,48 @@ public class PS1ShaderEditor : ShaderGUI
 				material.SetInt("_Cul", (int)UnityEngine.Rendering.CullMode.Off);
 				material.DisableKeyword("BFC");
 			}
-			if(depthWrite) {
-				material.EnableKeyword("DEPTH_WRITE");
-			} else {
-				material.DisableKeyword("DEPTH_WRITE");
-			}
 			if (_NormalMap.textureValue != null)
 				_DiffModel.floatValue = 1.0f;
+
+			if (_Unlit.floatValue == 1) {
+				material.EnableKeyword("UNLIT");
+			} else {
+				material.DisableKeyword("UNLIT");
+			}
+
+			if (_DiffModel.floatValue == 0) {
+				material.EnableKeyword("DIFF_VERTEX");
+				material.DisableKeyword("DIFF_FRAGMENT");
+			} else if (_DiffModel.floatValue == 1) {
+				material.DisableKeyword("DIFF_VERTEX");
+				material.EnableKeyword("DIFF_FRAGMENT");
+			}
+
+			if (_SpecModel.floatValue == 0) {
+				material.EnableKeyword("SPEC_GOURAUD");
+				material.DisableKeyword("SPEC_PHONG");
+			} else if (_SpecModel.floatValue == 1) {
+				material.DisableKeyword("SPEC_GOURAUD");
+				material.EnableKeyword("SPEC_PHONG");
+			}
+
+			foreach (Material m in materialEditor.targets) {
+				m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.BakedEmissive;
+			}
+
+			SetKeyword(material, "_METAL_MAP", material.GetTexture("_MetalMap"));
+			SetKeyword(material, "_NORMAL_MAP", material.GetTexture("_NormalMap"));
+			SetKeyword(material, "_EMISSION", (material.globalIlluminationFlags & MaterialGlobalIlluminationFlags.EmissiveIsBlack) == 0);
+			SetKeyword(material, "_EMISSION_MAP", material.GetTexture("_EmissionMap"));
+			SetKeyword(material, "_CUBE_MAP", material.GetTexture("_Cube"));
+			SetKeyword(material, "_LOD_TEX", material.GetTexture("_LODTex"));
+		}
+
+		void SetKeyword(Material m, string keyword, bool state) {
+			if (state)
+				m.EnableKeyword(keyword);
+			else
+				m.DisableKeyword(keyword);
 		}
 	}
 }

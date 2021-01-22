@@ -66,7 +66,7 @@ public class Weapon : MonoBehaviour
         {
             return;
         }
-        else if (AmmoCount > 0 || AmmoCount == 50000000)
+        else if (AmmoCount > 0)
         {
             for (int i = 0; i < numShots; i++)
             {
@@ -93,26 +93,25 @@ public class Weapon : MonoBehaviour
         }
     }
 
+    public void SwingMeleeWeapon(Vector3 position)
+    {
+       //implement
+    }
+
     public void SetNextFireTime()
     {
         NextTimeToFire = Time.time + 1f / FireRate;
     }
 
-    public void DrainAmmo() 
+    public void DrainAmmo()
     {
-        if (AmmoType != AmmoType.Pistol)
+        if (AmmoType == AmmoType.Shotgun)
         {
-            if (AmmoType == AmmoType.Shotgun)
-            {
-                CurrentAmmo = CurrentAmmo - 2;
-                return;
-            }
-            CurrentAmmo--;
-        }
-        else
-        {
+            CurrentAmmo = CurrentAmmo - 2;
             return;
         }
+        CurrentAmmo--;
+        return;
     }
 
     public void ApplyDamage(Enemy enemy) 

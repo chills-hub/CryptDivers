@@ -25,8 +25,8 @@ MonoBehaviour:
   DuckingViewOffset: 0.8
   DuckingLerp: 1
   DuckingLerpSpeed: 8
-  MaxGroundSpeed: 0.5
-  MaxGroundSprintSpeed: 0.18
+  MaxGroundSpeed: 0.18
+  MaxGroundSprintSpeed: 0.3
   MaxAirSpeed: 2
   MaxAirSprintSpeed: 0
   MaxWaterSpeed: 0.1
@@ -46,7 +46,7 @@ MonoBehaviour:
   FlyingController: 0
   SlopeAngleLimit: 73
   SwimmingOffset: 0.14
-  StepOffset: 1
+  StepOffset: 0.7
   Center: {x: 0, y: 0, z: 0}
   Size: {x: 1, y: 2, z: 1}
   SurfaceLayers:

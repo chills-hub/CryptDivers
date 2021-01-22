@@ -4,18 +4,20 @@ using System.Collections;
 public class Handgun : Weapon
 {
     public Animator HandgunAnimator;
+    public AudioSource FireSound;
 
     public Handgun()
     {
         WeaponDamage = 12;
         Range = 100f;
-        Falloff = 70f;
+        Falloff = 70f;    
         FireRate = 6f;
         AmmoType = AmmoType.Pistol;
-        AmmoCount = 50000000;
+        AmmoCount = 200;
+        CurrentAmmo = 200;
         NextTimeToFire = 0;
         Spread = 0.01f;
-        InInventory = true;
+        InInventory = false;
     }
 
     // Update is called once per frame
@@ -39,18 +41,18 @@ public class Handgun : Weapon
 
         if (InputManager.isFiring)
         {
+
             if (Time.time >= NextTimeToFire)
             {
-                //PlayGunSound();
                 SetNextFireTime();
                 DrainAmmo();
                 SetAnimatorValues(true);
                 FireHitscanWeapon(PlayerGunCamera.transform.position, 1, Spread);
+                RefManager.AudioManager.PlaySemiAutoGunSound(FireSound);
             }
         }
         else
         {
-           //StopGunSound();
             SetAnimatorValues(false);
         }
     }
@@ -58,15 +60,5 @@ public class Handgun : Weapon
     void SetAnimatorValues(bool input)
     {
         HandgunAnimator.SetBool("Handgun_Fire", input);
-    }
-
-    void PlayGunSound()
-    {
-        RefManager.AudioManager.PlaySound(GetComponent<AudioSource>());
-    }
-
-    void StopGunSound()
-    {
-        RefManager.AudioManager.StopSound(GetComponent<AudioSource>());
     }
 }

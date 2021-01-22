@@ -83,7 +83,7 @@ namespace vnc.Samples
                     retroController.updateController = !retroController.updateController;
                 }
 
-                mouseLook.LookRotation();
+               // mouseLook.LookRotation();
                 mouseLook.UpdateCursorLock();
             }
 

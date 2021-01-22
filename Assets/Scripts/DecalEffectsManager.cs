@@ -21,9 +21,12 @@ public class DecalEffectsManager : MonoBehaviour
 
     public void ApplyDecalByType(string tag, RaycastHit bulletHit) 
     {
+        //Ignore Raycast layer is fine for most things
+
         if (tag == "Enemy")
         {
             //blood decals
+            //reason why targets are showing no decals but still taking damage
         }
         else 
         {

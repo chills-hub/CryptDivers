@@ -1,26 +1,44 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using vnc;
-using vnc.Samples;
-using UnityEngine.InputSystem;
-using System;
-using UnityEngine.InputSystem.Composites;
 
 public class PlayerController : MonoBehaviour
 {
     public Transform playerView; //The transform containing the player view
     public RetroController retroController; //The retro controller to accept input
+    public ReferenceManager refManager;
     public float CurrentEquippedWeaponAmmo;
     public string CurrentEquippedWeapon;
 
+    private float nextFootstep = 0;
+
+    [Header("Player Audio")]
+    public AudioSource FootStepSource;
+    public AudioSource JumpSource;
+
+    public AudioClip BasicGround;
+    public AudioClip Grass;
+    public AudioClip Stone;
+    public AudioClip Water;
+    public AudioClip JumpSound;
+
+
+    [SerializeField]
+    private float footStepDelay;
+    [SerializeField]
+    private float sprintFootStepDelay;
+
+    [HideInInspector]
     [Header("Animation")]
     public Animator playerAnimator;
+
+    [HideInInspector]
     public float animDelta = 6f;
     float animHorizontal, animVertical;
 
     void Update()
     {
+        HandleSounds();
         SetAnimatorParameters();
 
         if (!GetComponentInChildren<Weapon>().Equals(null))
@@ -30,9 +48,9 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    void CheckSpreadValue() 
+    void CheckSpreadValue()
     {
-       //if less than 1 use spread value else round down or minus
+        //if less than 1 use spread value else round down or minus
     }
 
     private void SetAnimatorParameters()
@@ -61,5 +79,36 @@ public class PlayerController : MonoBehaviour
             return 0;
 
         return value;
+    }
+
+
+    //should this be in the audio manager for separation of concern
+    private void HandleSounds()
+    {
+        if (retroController.IsGrounded && GetComponentInParent<InputManager>().isMoving)
+        {
+            FootStepSource.clip = BasicGround;
+
+            nextFootstep -= Time.deltaTime;
+            if (nextFootstep <= 0)
+            {
+                refManager.AudioManager.PlayFootstepSound(FootStepSource);
+
+                if (retroController.Sprint)
+                {
+                    nextFootstep += sprintFootStepDelay;
+                }
+                else
+                {
+                    nextFootstep += footStepDelay;
+                }
+            }
+        }
+
+        if (GetComponentInParent<InputManager>().jump && retroController.IsGrounded) 
+        {
+            JumpSource.clip = JumpSound;
+            refManager.AudioManager.PlayFootstepSound(JumpSource);
+        }
     }
 }

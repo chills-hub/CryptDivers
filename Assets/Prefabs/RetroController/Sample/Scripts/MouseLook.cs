@@ -12,17 +12,6 @@ namespace vnc.Samples
         public bool smooth;
         public float smoothTime = 5f;
         public bool lockCursor { get; private set; }
-        public InputAction mouseLookLocal;
-
-        private void OnEnable()
-        {
-            mouseLookLocal.Enable();                                         
-        }
-
-        private void OnDisable()
-        {
-            mouseLookLocal.Disable();
-        }
 
         [Space]
         public bool cameraKick = true;
@@ -37,6 +26,18 @@ namespace vnc.Samples
         private Quaternion m_CameraTargetRot;
         private float kick = 0;
 
+        public InputAction MouseDelta;
+
+        private void OnEnable()
+        {
+            MouseDelta.Enable();
+        }
+
+        private void OnDisable()
+        {
+            MouseDelta.Disable();
+        }
+
         public virtual void Init(RetroController character, Transform camera)
         {
             characterRigidbody = character.GetComponent<Rigidbody>();
@@ -48,19 +49,19 @@ namespace vnc.Samples
 
         public virtual void LookRotation()
         {
-            Vector2 rotationVector = mouseLookLocal.ReadValue<Vector2>();
-            //Vector3 finalVectors = new Vector3();
-            //finalVectors.x = rotationVector.x;
-            //finalVectors.y = rotationVector.y;
-
             if (!lockCursor)
                 return;
 
             kick -= (Time.deltaTime * cameraKickSpeed);
             kick = Mathf.Clamp(kick, 0, cameraKickOffset);
+            Vector2 rotationVector = MouseDelta.ReadValue<Vector2>();
 
+
+            //float yRot = Input.GetAxis("Mouse X") * mouseSensitivity;
+            //float xRot = Input.GetAxis("Mouse Y") * mouseSensitivity;
             float yRot = rotationVector.x * mouseSensitivity;
             float xRot = rotationVector.y * mouseSensitivity;
+
 
             m_CharacterTargetRot *= Quaternion.Euler(0f, yRot, 0f);
             m_CameraTargetRot *= Quaternion.Euler(-xRot, 0f, 0f);
