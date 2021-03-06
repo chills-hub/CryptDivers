@@ -18,7 +18,7 @@ public class Weapon : MonoBehaviour
     /// The travel distance of bullets
     /// </summary>
     public float Range { get; set; }
-    /// <summary>
+    /// <summary>w
     /// The falloff distance of bullet damage
     /// </summary>
     public float Falloff { get; set; }
@@ -44,7 +44,9 @@ public class Weapon : MonoBehaviour
     public AmmoType AmmoType { get; set; }
 
     public Camera PlayerGunCamera;
+    [HideInInspector]
     public ReferenceManager RefManager;
+    [HideInInspector]
     public DecalEffectsManager DecalManager;
     [HideInInspector]
     public InputManager InputManager;
@@ -77,11 +79,12 @@ public class Weapon : MonoBehaviour
                 {
                     DecalManager.ApplyDecalByType(bulletHit.transform.tag, bulletHit);
 
-                    if (bulletHit.distance > Falloff)
-                    {
-                        //maybe split this out somehow?
-                        WeaponDamage /= 2;
-                    }
+                    //this needs re-examined
+                    //if (bulletHit.distance > Falloff)
+                    //{
+                    //    //maybe split this out somehow?
+                    //    WeaponDamage /= 2;
+                    //}
 
                     if (bulletHit.collider.gameObject.CompareTag("Enemy"))
                     {
@@ -95,7 +98,27 @@ public class Weapon : MonoBehaviour
 
     public void SwingMeleeWeapon(Vector3 position)
     {
-       //implement
+        RaycastHit axeHit;
+        Vector3 direction = PlayerGunCamera.transform.forward;
+
+        if (Physics.Raycast(position, direction, out axeHit, Range))
+        {
+            if (axeHit.collider.gameObject.CompareTag("Enemy"))
+            {
+                //also split this out?
+                DecalManager.ApplyDecalByType(axeHit.transform.tag, axeHit);
+                ApplyDamage(axeHit.transform.GetComponent<Enemy>());
+            }
+        }
+
+    }
+
+    public void FireProjectileWeapon(Vector3 origin, GameObject projectile, float projectileDamage)
+    {
+        Vector3 direction = PlayerGunCamera.transform.forward;
+        GameObject bolt = Instantiate(projectile, origin, Quaternion.LookRotation(direction));
+        bolt.GetComponent<ExplosiveBolt>().damage = projectileDamage;
+        bolt.GetComponent<Rigidbody>().AddForce(PlayerGunCamera.transform.forward * 500 * Time.deltaTime, ForceMode.Impulse);
     }
 
     public void SetNextFireTime()
@@ -126,7 +149,6 @@ public enum AmmoType
     Rifle = 1,
     Shotgun = 2,
     Pistol = 3,
-    Rocket = 4,
-    Grenade = 5
+    Bolt = 4
 }
 

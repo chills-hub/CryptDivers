@@ -1,19 +1,19 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 public class Pickup : MonoBehaviour
 {
     private Animator PickupAnimator;
     private PickupManager PickupManager;
 
-    /// <summary>
-    /// The Type of pickup
-    /// </summary>
-    public enum PickupType 
+    public enum WeaponTypeEnum
     {
         Handgun = 1,
         SMG = 2,
-        Shotgun = 3
+        Shotgun = 3,
+        Crossbow = 4
     }
+    public WeaponTypeEnum WeaponType;
 
     // Start is called before the first frame update
     void Start()
@@ -25,7 +25,10 @@ public class Pickup : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        PickupManager.ApplyPickup(gameObject.name);
-        Destroy(transform.gameObject);
+        if (other.gameObject.tag == "Player") 
+        {
+            PickupManager.ApplyPickup(Convert.ToInt32(WeaponType));
+            Destroy(transform.gameObject);
+        }
     }
 }

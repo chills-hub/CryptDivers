@@ -2,25 +2,27 @@
 using UnityEngine;
 using vnc;
 
-public class PlayerController : MonoBehaviour
+public class PlayerController : PlayerStats
 {
     public Transform playerView; //The transform containing the player view
     public RetroController retroController; //The retro controller to accept input
     public ReferenceManager refManager;
     public float CurrentEquippedWeaponAmmo;
     public string CurrentEquippedWeapon;
-
     private float nextFootstep = 0;
 
     [Header("Player Audio")]
     public AudioSource FootStepSource;
     public AudioSource JumpSource;
+    public AudioSource AmmoPickup;
+
 
     public AudioClip BasicGround;
     public AudioClip Grass;
     public AudioClip Stone;
     public AudioClip Water;
     public AudioClip JumpSound;
+    public AudioClip AmmoPickupSound;
 
 
     [SerializeField]
@@ -110,5 +112,20 @@ public class PlayerController : MonoBehaviour
             JumpSource.clip = JumpSound;
             refManager.AudioManager.PlayFootstepSound(JumpSource);
         }
+    }
+
+    public void ApplyPlayerDamage(float damageValue) 
+    {
+        CameraShake.Shake(0.3f, 0.1f);
+        float armourDamage = Mathf.Min(CurrentArmour, damageValue);
+        float healthDamage = Mathf.Min(CurrentHealth, damageValue);
+        CurrentArmour -= armourDamage;
+        CurrentHealth -= healthDamage;
+    }
+
+    public void PlayAmmoPickupSound() 
+    {
+       AmmoPickup.clip = AmmoPickupSound;
+       refManager.AudioManager.PlayAmmoPickupSound(AmmoPickup);
     }
 }

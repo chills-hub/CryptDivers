@@ -47,6 +47,7 @@
   <PropertyGroup>
     <ProjectTypeGuids>{E097FAD1-6243-4DAD-9C02-E9B9EFC3FFC1};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <UnityProjectGenerator>Unity/VSTU</UnityProjectGenerator>
+    <UnityProjectGeneratorVersion>4.9.1.0</UnityProjectGeneratorVersion>
     <UnityProjectType>Game:1</UnityProjectType>
     <UnityBuildTarget>StandaloneWindows64:19</UnityBuildTarget>
     <UnityVersion>2019.4.17f1</UnityVersion>
@@ -63,6 +64,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\ChangeSelectedVolume.cs" />
+    <Compile Include="Assets\ExplosiveBolt.cs" />
     <Compile Include="Assets\Prefabs\JMO Assets\WarFX\Demo\Assets\CFX_AutoStopLoopedEffect.cs" />
     <Compile Include="Assets\Prefabs\JMO Assets\WarFX\Demo\Assets\CFX_Demo_RandomDir.cs" />
     <Compile Include="Assets\Prefabs\JMO Assets\WarFX\Demo\Assets\CFX_Demo_RotateCamera.cs" />
@@ -117,30 +120,41 @@
     <Compile Include="Assets\Prefabs\RetroController\Scripts\Utils\RangeNoSliderAttribute.cs" />
     <Compile Include="Assets\Prefabs\RetroController\Scripts\Utils\RetroEvents.cs" />
     <Compile Include="Assets\Prefabs\RetroController\Scripts\Utils\UnorderedList.cs" />
+    <Compile Include="Assets\ReloadEnableBoltObject.cs" />
     <Compile Include="Assets\Scripts\BouncePad.cs" />
+    <Compile Include="Assets\Scripts\ButtonHover.cs" />
+    <Compile Include="Assets\Scripts\CameraShake.cs" />
     <Compile Include="Assets\Scripts\DecalEffectsManager.cs" />
-    <Compile Include="Assets\Scripts\Enemy.cs" />
+    <Compile Include="Assets\Scripts\Enemies\AttackTrigger.cs" />
+    <Compile Include="Assets\Scripts\Enemies\Enemy.cs" />
+    <Compile Include="Assets\Scripts\Enemies\EnemyCore.cs" />
+    <Compile Include="Assets\Scripts\Enemies\GibBloodSpatter.cs" />
+    <Compile Include="Assets\Scripts\Enemies\GibEnemy.cs" />
+    <Compile Include="Assets\Scripts\Enemies\TestEnemy.cs" />
     <Compile Include="Assets\Scripts\Game Logic\AudioManager.cs" />
     <Compile Include="Assets\Scripts\Game Logic\GameManager.cs" />
     <Compile Include="Assets\Scripts\Game Logic\ReferenceManager.cs" />
     <Compile Include="Assets\Scripts\Game Logic\UIManager.cs" />
+    <Compile Include="Assets\Scripts\Guns\AmmoPickup.cs" />
     <Compile Include="Assets\Scripts\Guns\DoubleBarrel.cs" />
     <Compile Include="Assets\Scripts\Guns\DoubleBarrel_ReloadShells.cs" />
+    <Compile Include="Assets\Scripts\Guns\ExplosiveCrossbow.cs" />
     <Compile Include="Assets\Scripts\Guns\FireAxe.cs" />
     <Compile Include="Assets\Scripts\Guns\Handgun.cs" />
     <Compile Include="Assets\Scripts\Guns\MuzzleFlashHelper.cs" />
     <Compile Include="Assets\Scripts\Guns\Pickup.cs" />
+    <Compile Include="Assets\Scripts\Guns\ShellDelete.cs" />
     <Compile Include="Assets\Scripts\Guns\Smg.cs" />
     <Compile Include="Assets\Scripts\Guns\Weapon.cs" />
+    <Compile Include="Assets\Scripts\LightFlicker.cs" />
     <Compile Include="Assets\Scripts\Player\InputManager.cs" />
     <Compile Include="Assets\Scripts\Player\Inventory.cs" />
     <Compile Include="Assets\Scripts\Player\PickupManager.cs" />
     <Compile Include="Assets\Scripts\Player\PlayerController.cs" />
+    <Compile Include="Assets\Scripts\Player\PlayerStats.cs" />
     <Compile Include="Assets\Scripts\ScriptableObjects\EventSystem\EventListener.cs" />
     <Compile Include="Assets\Scripts\ScriptableObjects\EventSystem\EventRaiser.cs" />
     <Compile Include="Assets\Scripts\ScriptableObjects\EventSystem\GameEvent.cs" />
-    <Compile Include="Assets\Scripts\ShellDelete.cs" />
-    <Compile Include="Assets\Scripts\TestEnemy.cs" />
     <None Include="Assets\TextMesh Pro\Shaders\TMPro.cginc" />
     <None Include="Assets\Prefabs\JMO Assets\WarFX\Shaders\WFX_S Multiply Soft.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Overlay.shader" />
@@ -182,6 +196,7 @@
     <None Include="Assets\Prefabs\PSXEffects\Shaders\Resources\PS1PostProcessing.shader" />
     <None Include="Assets\TextMesh Pro\Resources\LineBreaking Following Characters.txt" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Masking.shader" />
+    <None Include="Assets\Prefabs\Blood decal pack\readme.txt" />
     <None Include="Assets\Prefabs\JMO Assets\WarFX\Shaders\WFX_S Particle AddSoft A8.shader" />
     <None Include="Assets\Prefabs\JMO Assets\WarFX\!WarFX Readme.txt" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF Overlay.shader" />

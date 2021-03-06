@@ -7,7 +7,7 @@ public class Smg : Weapon
 
     public Smg() 
     {
-        WeaponDamage = 10;
+        WeaponDamage = 3;
         AmmoCount = 500;
         CurrentAmmo = 500;
         Range = 100f;
@@ -37,7 +37,7 @@ public class Smg : Weapon
             SmgAnimator.SetBool("Player_Moving", false);
         }
 
-        if (InputManager.isFiring && CurrentAmmo > 0)
+        if (InputManager.isFiring && CurrentAmmo > 0 && Time.timeScale != 0)
         {
             if (Time.time >= NextTimeToFire)
             {

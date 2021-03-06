@@ -77,7 +77,7 @@ public class Inventory : MonoBehaviour
                 InventorySlots[i].SetActive(true);
                 InventorySlots[i].GetComponentInParent<Animator>().runtimeAnimatorController = Animators[i];
 
-                if (InventorySlots[i].gameObject.name == "Shotgun" || InventorySlots[i].gameObject.name == "FireAxe")
+                if (InventorySlots[i].gameObject.name == "Shotgun" || InventorySlots[i].gameObject.name == "Crossbow" || InventorySlots[i].gameObject.name == "FireAxe")
                 {
                     RightHand.SetActive(false);
                 }

@@ -7,7 +7,7 @@ public class DoubleBarrel : Weapon
 
     public DoubleBarrel()
     {
-        WeaponDamage = 25;
+        WeaponDamage = 10;
         AmmoCount = 50;
         CurrentAmmo = 50;
         Range = 100f;
@@ -37,7 +37,7 @@ public class DoubleBarrel : Weapon
             DoubleBarrelAnimator.SetBool("Player_Moving", false);
         }
 
-        if (InputManager.isFiring)
+        if (InputManager.isFiring && CurrentAmmo > 0  && Time.timeScale != 0)
         {
             if (Time.time >= NextTimeToFire)
             {

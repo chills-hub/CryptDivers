@@ -22,19 +22,21 @@ public class InputManager : MonoBehaviour
     public InputAction Scroll;
     #endregion
 
-    public GameEvent ScrollWeaponUp;
-    public GameEvent ScrollWeaponDown;
-    //This needs separated into separate calls
-    public GameEvent InventoryKeyPressed;
-
-    private RetroController retroController; //The retro controller to accept input
-    private Transform playerView; //The transform containing the player view
-    public MouseLook mouseLook; //Mouse look input
-
-    //Input Variables
+    #region Input Variables
     [HideInInspector] public float fwd, strafe, swim;
     [HideInInspector] public bool jump, sprint, duck;
     [HideInInspector] public float mouseScrollValue;
+    #endregion
+
+    [Header("Input Game Events")]
+    public GameEvent ScrollWeaponUp;
+    public GameEvent ScrollWeaponDown;
+
+    [HideInInspector]
+    public RetroController retroController; //The retro controller to accept input  
+    [HideInInspector]
+    public MouseLook mouseLook; //Mouse look input 
+    private Transform playerView; //The transform containing the player view
 
     [Space, Tooltip("Switch to ducking and standing by pressing once instead of holding")]
     public bool toggleDucking;
@@ -81,6 +83,7 @@ public class InputManager : MonoBehaviour
         InventoryNum5.Disable();
         InventoryNum6.Disable();
         Scroll.Disable();
+        Escape.Disable();
     }
 
     void Start()
@@ -110,11 +113,11 @@ public class InputManager : MonoBehaviour
 
         if (mouseLook)
         {
-            if (Escape.triggered)
-            {
-                mouseLook.SetCursorLock(!mouseLook.lockCursor);
-                retroController.updateController = !retroController.updateController;
-            }
+            //if (Escape.triggered)
+            //{
+            //    mouseLook.SetCursorLock(!mouseLook.lockCursor);
+            //    retroController.updateController = !retroController.updateController;
+            //}
             mouseLook.LookRotation();
             mouseLook.UpdateCursorLock();
         }
@@ -132,7 +135,7 @@ public class InputManager : MonoBehaviour
         //this needs changed to be separate raises
         if (InventoryNum1.triggered || InventoryNum2.triggered || InventoryNum3.triggered || InventoryNum4.triggered || InventoryNum5.triggered || InventoryNum6.triggered) 
         {
-            InventoryKeyPressed.Raise();
+            //InventoryKeyPressed.Raise();
         }
 
         Time.timeScale = retroController.updateController ? 1 : 0;

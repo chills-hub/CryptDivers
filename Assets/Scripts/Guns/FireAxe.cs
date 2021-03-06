@@ -9,9 +9,9 @@ public class FireAxe : Weapon
     public FireAxe()
     {
         WeaponDamage = 40;
-        Range = 1f;
-        FireRate = 10f;
-        NextTimeToFire = 0;
+        Range = 3f;
+        FireRate = 1.3f;
+        NextTimeToFire = 0f;
         Spread = 0.01f;
         InInventory = true;
     }
@@ -35,7 +35,7 @@ public class FireAxe : Weapon
             FireAxeAnimator.SetBool("Player_Moving", false);
         }
 
-        if (InputManager.isFiring)
+        if (InputManager.isFiring && Time.timeScale != 0)
         {
             if (Time.time >= NextTimeToFire)
             {

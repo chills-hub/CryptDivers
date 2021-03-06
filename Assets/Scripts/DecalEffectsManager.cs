@@ -6,18 +6,8 @@ public class DecalEffectsManager : MonoBehaviour
 {
     public GameObject ImpactEffectConcrete;
     public GameObject BulletHoleEffectConcrete;
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+    public GameObject BloodImpactEffect;
+    public List<GameObject> ListOfBloodDecals;
 
     public void ApplyDecalByType(string tag, RaycastHit bulletHit) 
     {
@@ -27,6 +17,8 @@ public class DecalEffectsManager : MonoBehaviour
         {
             //blood decals
             //reason why targets are showing no decals but still taking damage
+            //change this for blood
+            Instantiate(BloodImpactEffect, bulletHit.point, Quaternion.LookRotation(bulletHit.normal));
         }
         else 
         {
@@ -34,5 +26,10 @@ public class DecalEffectsManager : MonoBehaviour
             bulletHole.transform.parent = bulletHit.transform;
             Instantiate(ImpactEffectConcrete, bulletHit.point, Quaternion.LookRotation(bulletHit.normal));
         }
+    }
+
+    public GameObject ReturnGibSplatter() 
+    {
+        return ListOfBloodDecals[Random.Range(0, 6)];
     }
 }

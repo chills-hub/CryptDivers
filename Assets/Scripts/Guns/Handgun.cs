@@ -8,7 +8,7 @@ public class Handgun : Weapon
 
     public Handgun()
     {
-        WeaponDamage = 12;
+        WeaponDamage = 6;
         Range = 100f;
         Falloff = 70f;    
         FireRate = 6f;
@@ -39,10 +39,10 @@ public class Handgun : Weapon
             HandgunAnimator.SetBool("Player_Moving", false);
         }
 
-        if (InputManager.isFiring)
+        if (InputManager.isFiring && CurrentAmmo > 0  && Time.timeScale != 0)
         {
 
-            if (Time.time >= NextTimeToFire)
+            if (Time.time >= NextTimeToFire && CurrentAmmo > 0)
             {
                 SetNextFireTime();
                 DrainAmmo();

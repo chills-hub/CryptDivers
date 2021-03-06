@@ -4,6 +4,20 @@ using UnityEngine;
 
 public class AudioManager : MonoBehaviour
 {
+    [Header("Weapon Sounds")]
+    public List<AudioSource> WeaponSounds;
+
+    [Header("Player Sounds")]
+    public List<AudioSource> PlayerSounds;
+
+    [SerializeField]
+    private GameObject BoltPrefabForAudio;
+
+    private void Start()
+    {
+        WeaponSounds.Add(BoltPrefabForAudio.GetComponentInChildren<AudioSource>());
+    }
+
     public void PlaySemiAutoGunSound(AudioSource source) 
     {
         source.Play();
@@ -20,6 +34,11 @@ public class AudioManager : MonoBehaviour
     }
 
     public void PlayJumpSound(AudioSource source)
+    {
+        source.Play();
+    }
+
+    public void PlayAmmoPickupSound(AudioSource source)
     {
         source.Play();
     }

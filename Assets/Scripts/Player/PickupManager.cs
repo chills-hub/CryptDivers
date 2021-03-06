@@ -2,38 +2,120 @@
 
 public class PickupManager : MonoBehaviour
 {
-    public GameObject Handgun;
-    public GameObject Smg;
-    public GameObject DoubleBarrel;
+    public Weapon Handgun;
+    public Weapon Smg;
+    public Weapon DoubleBarrel;
+    public Weapon Crossbow;
 
-    private Inventory PlayerInventory; 
+    private Inventory PlayerInventory;
 
     void Start()
     {
         PlayerInventory = GameObject.Find("Player").GetComponent<Inventory>();
+        Handgun = PlayerInventory.InventorySlots[1].GetComponent<Weapon>();
+        Smg = PlayerInventory.InventorySlots[2].GetComponent<Weapon>();
+        DoubleBarrel = PlayerInventory.InventorySlots[3].GetComponent<Weapon>();
+        Crossbow = PlayerInventory.InventorySlots[4].GetComponent<Weapon>();
     }
 
-    public void ApplyPickup(string pickup) 
+    public void ApplyPickup(int weaponType) 
     {
-        if (pickup == "Handgun_Pickup")
+        //Handgun
+        if (weaponType == 1 )
         {
-            PlayerInventory.InventorySlots[1].GetComponent<Weapon>().InInventory = true;
+            Handgun.InInventory = true;
             PlayerInventory.selectedWeapon = 1;
             PlayerInventory.SelectWeapon();
         }
-
-        if (pickup == "SMG_Pickup") 
+        //SMG
+        if (weaponType == 2) 
         {
-            PlayerInventory.InventorySlots[2].GetComponent<Weapon>().InInventory = true;
+            Smg.InInventory = true;
             PlayerInventory.selectedWeapon = 2;
             PlayerInventory.SelectWeapon();
         }
-
-        if (pickup == "Shotgun_Pickup")
+        //Shotgun
+        if (weaponType == 3)
         {
-            PlayerInventory.InventorySlots[3].GetComponent<Weapon>().InInventory = true;
+            DoubleBarrel.InInventory = true;
             PlayerInventory.selectedWeapon = 3;
             PlayerInventory.SelectWeapon();
+        }
+        //Crossbow
+        if (weaponType == 4)
+        {
+            Crossbow.InInventory = true;
+            PlayerInventory.selectedWeapon = 4;
+            PlayerInventory.SelectWeapon();
+        }
+    }
+
+    public void ApplyAmmoPickup(int weaponType, int ammoToAdd, Transform transform, GameEvent pickedUpEVent)
+    {
+
+        //Handgun
+        if (weaponType == 1)
+        {
+            if (Handgun.CurrentAmmo < Handgun.AmmoCount)
+            {
+                Handgun.CurrentAmmo += ammoToAdd;
+                pickedUpEVent.Raise();
+                Destroy(transform.gameObject);
+
+                if (Handgun.CurrentAmmo > Handgun.AmmoCount)
+                {
+                    Handgun.CurrentAmmo = Handgun.AmmoCount;
+                }
+            }
+            else { return; }
+        }
+        //SMG
+        if (weaponType == 2)
+        {
+            if (Smg.CurrentAmmo < Smg.AmmoCount)
+            {
+                Smg.CurrentAmmo += ammoToAdd;
+                pickedUpEVent.Raise();
+                Destroy(transform.gameObject);
+
+                if (Smg.CurrentAmmo > Smg.AmmoCount)
+                {
+                    Smg.CurrentAmmo = Smg.AmmoCount;
+                }
+            }
+            else { return; }
+        }
+        //Shotgun
+       if (weaponType == 3)
+        {
+            if (DoubleBarrel.CurrentAmmo < DoubleBarrel.AmmoCount)
+            {
+                DoubleBarrel.CurrentAmmo += ammoToAdd;
+                pickedUpEVent.Raise();
+                Destroy(transform.gameObject);
+
+                if (DoubleBarrel.CurrentAmmo > DoubleBarrel.AmmoCount)
+                {
+                    DoubleBarrel.CurrentAmmo = DoubleBarrel.AmmoCount;
+                }
+            }
+            else { return; }
+        }
+        //Crossbow
+        if (weaponType == 4)
+        {
+            if (Crossbow.CurrentAmmo < Crossbow.AmmoCount)
+            {
+                Crossbow.CurrentAmmo += ammoToAdd;
+                pickedUpEVent.Raise();
+                Destroy(transform.gameObject);
+
+                if (Crossbow.CurrentAmmo > Crossbow.AmmoCount)
+                {
+                    Crossbow.CurrentAmmo = Crossbow.AmmoCount;
+                }
+            }
+            else { return; }
         }
     }
 }

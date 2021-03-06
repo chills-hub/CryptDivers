@@ -9,6 +9,8 @@ TagManager:
   - Ladder
   - Pickup
   - Enemy
+  - Ground
+  - Door
   layers:
   - Default
   - TransparentFX
